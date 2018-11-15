@@ -45,6 +45,7 @@ my $bruteForce;
 my $ignoreContent;
 my $useBody;
 my $verbose;
+my $followRedirect;
 
 GetOptions( "log" => \$logFiles,
             "post=s" => \$post,
@@ -68,6 +69,7 @@ GetOptions( "log" => \$logFiles,
             "bruteforce" => \$bruteForce,
             "ignorecontent" => \$ignoreContent,
             "usebody" => \$useBody,
+            "followredirect" => \$followRedirect,
             "verbose" => \$verbose);
   
 print "\n+-------------------------------------------+\n";
@@ -95,6 +97,7 @@ Options:
                           3=.NET UrlToken, 4=WebSafe Base64
          -encodedtext [Encoded String]: Data to Encrypt (Encoded)
          -error [Error String]: Padding Error Message
+         -followredirect: Follow HTTP 301/302 redirects
          -headers [HTTP Headers]: Custom Headers (name1::value1;name2::value2)
 	 -interactive: Prompt for confirmation on decrypted bytes
 	 -intermediate [Bytes]: Intermediate Bytes for CipherText (Hex-Encoded)
@@ -638,13 +641,23 @@ sub makeRequest {
   #Quick hack to avoid hostname in URL when using a proxy with SSL (this will get re-set later if needed)
   $ENV{HTTPS_PROXY} = "";
   $ENV{PERL_LWP_SSL_VERIFY_HOSTNAME} = 0;
-  
-  $lwp = LWP::UserAgent->new(env_proxy => 1,
+
+  if ( $followRedirect ) { 
+	  $lwp = LWP::UserAgent->new(env_proxy => 1,
+                            keep_alive => 1,
+			    ssl_opts => { SSL_verify_mode => 0 },
+                            timeout => 30,
+			    requests_redirectable => ['GET', 'POST', ]
+                            );
+  } else {
+  	$lwp = LWP::UserAgent->new(env_proxy => 1,
                             keep_alive => 1,
 			    ssl_opts => { SSL_verify_mode => 0 },
                             timeout => 30,
 			    requests_redirectable => [],
                             );
+  }
+
  
   $req = new HTTP::Request $method => $url;
 
@@ -665,8 +678,10 @@ sub makeRequest {
 		$proxyUrl .= $proxyAuth."@";
  	}
  	$proxyUrl .= $proxy;
- 	$lwp->proxy(['http'], "http://".$proxy);
-	$ENV{HTTPS_PROXY} = "http://".$proxy;
+ 	$lwp->proxy(['http'], $proxyUrl);
+	$ENV{HTTP_PROXY} = $proxyUrl;
+ 	$lwp->proxy(['https'], $proxyUrl);
+	$ENV{HTTPS_PROXY} = $proxyUrl;
   } 	
 
 
