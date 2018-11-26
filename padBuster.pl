@@ -665,7 +665,12 @@ sub makeRequest {
   
   # Add request content for POST and PUTS 
   if ($data) {
-   $req->content_type('application/x-www-form-urlencoded');
+   $data =~ s/^\s+//;
+   if ( substr( $data, 0, 1 ) eq "{" ) {
+     $req->content_type('application/json');
+   } else {
+     $req->content_type('application/x-www-form-urlencoded');
+   }
    $req->content($data);
   }
  
