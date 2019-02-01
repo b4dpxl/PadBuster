@@ -47,6 +47,8 @@ my $useBody;
 my $verbose;
 my $followRedirect;
 
+my $doubleEncoded = 0;
+
 GetOptions( "log" => \$logFiles,
             "post=s" => \$post,
             "encoding=s" => \$encoding,
@@ -158,7 +160,12 @@ my $totalRequests = 0;
 
 # See if the sample needs to be URL decoded, otherwise don't (the plus from B64 will be a problem)
 if ($sample =~ /\%/) {
-	$encryptedBytes = &uri_unescape($encryptedBytes)
+	$encryptedBytes = &uri_unescape($encryptedBytes);
+	if ( $encryptedBytes =~ /\%/) {
+		# print("Double escaped :|");
+		$doubleEncoded = 1;
+		$encryptedBytes = &uri_unescape($encryptedBytes);
+	}
 }
 
 # Prep the sample for regex use
@@ -499,6 +506,9 @@ sub processBlock {
 
 				if (! $noEncodeOption) {
 					$combinedTestBytes = &uri_escape($combinedTestBytes); 
+					if ( $doubleEncoded ) {
+						$combinedTestBytes = &uri_escape($combinedTestBytes); 
+					}
 				}
 
 				my ($testUrl, $testPost, $testCookies) = &prepRequest($url, $post, $cookie, $sample, $combinedTestBytes);
@@ -645,16 +655,17 @@ sub makeRequest {
   if ( $followRedirect ) { 
 	  $lwp = LWP::UserAgent->new(env_proxy => 1,
                             keep_alive => 1,
-			    ssl_opts => { SSL_verify_mode => 0 },
+			    			ssl_opts => { SSL_verify_mode => 0 },
                             timeout => 30,
-			    requests_redirectable => ['GET', 'POST', ]
+			    			requests_redirectable => ['GET', 'POST', ],
+			    			cookie_jar => {}
                             );
   } else {
   	$lwp = LWP::UserAgent->new(env_proxy => 1,
                             keep_alive => 1,
-			    ssl_opts => { SSL_verify_mode => 0 },
+			    			ssl_opts => { SSL_verify_mode => 0 },
                             timeout => 30,
-			    requests_redirectable => [],
+						    requests_redirectable => [],
                             );
   }
 
