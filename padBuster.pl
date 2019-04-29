@@ -11,6 +11,7 @@
 # 
 
 use LWP::UserAgent;
+use HTTP::Cookies;
 use strict;
 use warnings;
 use Getopt::Std;
@@ -641,7 +642,7 @@ sub processBlock {
 sub makeRequest {
  
  my ($method, $url, $data, $cookie) = @_; 
- my ($noConnect, $lwp, $status, $content, $req, $location, $contentLength);   
+ my ($noConnect, $lwp, $status, $content, $req, $location, $contentLength, $cookie_jar);   
  my $numRetries = 0;
  $data ='' unless $data;
  $cookie='' unless $cookie;
@@ -652,21 +653,27 @@ sub makeRequest {
   $ENV{HTTPS_PROXY} = "";
   $ENV{PERL_LWP_SSL_VERIFY_HOSTNAME} = 0;
 
-  if ( $followRedirect ) { 
-	  $lwp = LWP::UserAgent->new(env_proxy => 1,
-                            keep_alive => 1,
-			    			ssl_opts => { SSL_verify_mode => 0 },
-                            timeout => 30,
-			    			requests_redirectable => ['GET', 'POST', ],
-			    			cookie_jar => {}
-                            );
-  } else {
-  	$lwp = LWP::UserAgent->new(env_proxy => 1,
+  $lwp = LWP::UserAgent->new(env_proxy => 1,
                             keep_alive => 1,
 			    			ssl_opts => { SSL_verify_mode => 0 },
                             timeout => 30,
 						    requests_redirectable => [],
                             );
+
+  $cookie_jar = HTTP::Cookies->new();
+  $lwp->cookie_jar($cookie_jar);
+  if (! $cookie eq "") {
+    #$req->header(Cookie => $cookie);
+    my $url2 = URI->new( $url );
+    for my $c (split /;/, $cookie) {
+    	my @c2 = split(/=/, $c);
+    	$cookie_jar->set_cookie(0, $c2[0], $c2[1], '/', $url2->host, $url2->port, 0, 0, 14400000, 0 );
+    }
+  }
+
+
+  if ( $followRedirect ) { 
+	  $lwp->requests_redirectable( ['GET', 'POST', ] );
   }
 
  
@@ -706,10 +713,10 @@ sub makeRequest {
    $req->authorization_basic($httpuser, $httppass);
   }
 
-  # If cookies are defined, add a COOKIE header
-  if (! $cookie eq "") {
-   $req->header(Cookie => $cookie);
-  }
+#  # If cookies are defined, add a COOKIE header
+#  if (! $cookie eq "") {
+#   $req->header(Cookie => $cookie);
+#  }
  
   if ($headers) {
    my @customHeaders = split(/;/i,$headers);
