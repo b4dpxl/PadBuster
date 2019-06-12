@@ -47,6 +47,7 @@ my $ignoreContent;
 my $useBody;
 my $verbose;
 my $followRedirect;
+my $userAgent;
 
 my $doubleEncoded = 0;
 
@@ -73,6 +74,7 @@ GetOptions( "log" => \$logFiles,
             "ignorecontent" => \$ignoreContent,
             "usebody" => \$useBody,
             "followredirect" => \$followRedirect,
+            "useragent" => \$userAgent,
             "verbose" => \$verbose);
   
 print "\n+-------------------------------------------+\n";
@@ -94,28 +96,29 @@ Options:
 	 -auth [username:password]: HTTP Basic Authentication 
 	 -bruteforce: Perform brute force against the first block 
 	 -ciphertext [Bytes]: CipherText for Intermediate Bytes (Hex-Encoded)
-         -cookies [HTTP Cookies]: Cookies (name1=value1; name2=value2)
-         -encoding [0-4]: Encoding Format of Sample (Default 0)
-                          0=Base64, 1=Lower HEX, 2=Upper HEX
-                          3=.NET UrlToken, 4=WebSafe Base64
-         -encodedtext [Encoded String]: Data to Encrypt (Encoded)
-         -error [Error String]: Padding Error Message
-         -followredirect: Follow HTTP 301/302 redirects
-         -headers [HTTP Headers]: Custom Headers (name1::value1;name2::value2)
+     -cookies [HTTP Cookies]: Cookies (name1=value1; name2=value2)
+     -encoding [0-4]: Encoding Format of Sample (Default 0)
+                      0=Base64, 1=Lower HEX, 2=Upper HEX
+                      3=.NET UrlToken, 4=WebSafe Base64
+     -encodedtext [Encoded String]: Data to Encrypt (Encoded)
+     -error [Error String]: Padding Error Message
+     -followredirect: Follow HTTP 301/302 redirects
+     -headers [HTTP Headers]: Custom Headers (name1::value1;name2::value2)
 	 -interactive: Prompt for confirmation on decrypted bytes
 	 -intermediate [Bytes]: Intermediate Bytes for CipherText (Hex-Encoded)
 	 -log: Generate log files (creates folder PadBuster.DDMMYY)
 	 -noencode: Do not URL-encode the payload (encoded by default)
 	 -noiv: Sample does not include IV (decrypt first block) 
-         -plaintext [String]: Plain-Text to Encrypt
-         -post [Post Data]: HTTP Post Data String
+     -plaintext [String]: Plain-Text to Encrypt
+     -post [Post Data]: HTTP Post Data String
 	 -prefix [Prefix]: Prefix bytes to append to each sample (Encoded) 
 	 -proxy [address:port]: Use HTTP/S Proxy
 	 -proxyauth [username:password]: Proxy Authentication
 	 -resume [Block Number]: Resume at this block number
 	 -usebody: Use response body content for response analysis phase
-         -verbose: Be Verbose
-         -veryverbose: Be Very Verbose (Debug Only)
+	 -useragent: Use this UA instead of the default ('libwww-perl/...')
+     -verbose: Be Verbose
+     -veryverbose: Be Very Verbose (Debug Only)
          
 ";}
 
@@ -660,6 +663,10 @@ sub makeRequest {
 						    requests_redirectable => [],
                             );
 
+  if (! $userAgent eq "") {
+  	$lwp->agent($userAgent);
+  }
+
   $cookie_jar = HTTP::Cookies->new();
   $lwp->cookie_jar($cookie_jar);
   if (! $cookie eq "") {
@@ -670,7 +677,6 @@ sub makeRequest {
     	$cookie_jar->set_cookie(0, $c2[0], $c2[1], '/', $url2->host, $url2->port, 0, 0, 14400000, 0 );
     }
   }
-
 
   if ( $followRedirect ) { 
 	  $lwp->requests_redirectable( ['GET', 'POST', ] );
