@@ -25,6 +25,7 @@ use Crypt::SSLeay;
 # Set defaults with $variable = value
 my $logFiles;
 my $post;
+my $method = "";
 my $encoding = 0;
 my $headers;
 my $cookie;
@@ -61,9 +62,10 @@ GetOptions( "log" => \$logFiles,
             "intermediate=s" => \$intermediaryInput,
             "ciphertext=s" => \$cipherInput,
             "plaintext=s" => \$plainTextInput,
-	    "encodedtext=s" => \$encodedPlainTextInput,
+	    	"encodedtext=s" => \$encodedPlainTextInput,
             "noencode" => \$noEncodeOption,
             "veryverbose" => \$superVerbose,
+            "method=s" => \$method,
             "proxy=s" => \$proxy,
             "proxyauth=s" => \$proxyAuth,
             "noiv" => \$noIv,
@@ -93,9 +95,9 @@ if ($#ARGV < 2) {
          BlockSize = The block size being used by the algorithm
 
 Options:
-	 -auth [username:password]: HTTP Basic Authentication 
-	 -bruteforce: Perform brute force against the first block 
-	 -ciphertext [Bytes]: CipherText for Intermediate Bytes (Hex-Encoded)
+     -auth [username:password]: HTTP Basic Authentication 
+     -bruteforce: Perform brute force against the first block 
+     -ciphertext [Bytes]: CipherText for Intermediate Bytes (Hex-Encoded)
      -cookies [HTTP Cookies]: Cookies (name1=value1; name2=value2)
      -encoding [0-4]: Encoding Format of Sample (Default 0)
                       0=Base64, 1=Lower HEX, 2=Upper HEX
@@ -104,19 +106,20 @@ Options:
      -error [Error String]: Padding Error Message
      -followredirect: Follow HTTP 301/302 redirects
      -headers [HTTP Headers]: Custom Headers (name1::value1;name2::value2)
-	 -interactive: Prompt for confirmation on decrypted bytes
-	 -intermediate [Bytes]: Intermediate Bytes for CipherText (Hex-Encoded)
-	 -log: Generate log files (creates folder PadBuster.DDMMYY)
-	 -noencode: Do not URL-encode the payload (encoded by default)
-	 -noiv: Sample does not include IV (decrypt first block) 
+     -interactive: Prompt for confirmation on decrypted bytes
+     -intermediate [Bytes]: Intermediate Bytes for CipherText (Hex-Encoded)
+     -log: Generate log files (creates folder PadBuster.DDMMYY)
+     -method: HTTP method to use if not GET or POST
+     -noencode: Do not URL-encode the payload (encoded by default)
+     -noiv: Sample does not include IV (decrypt first block) 
      -plaintext [String]: Plain-Text to Encrypt
      -post [Post Data]: HTTP Post Data String
-	 -prefix [Prefix]: Prefix bytes to append to each sample (Encoded) 
-	 -proxy [address:port]: Use HTTP/S Proxy
-	 -proxyauth [username:password]: Proxy Authentication
-	 -resume [Block Number]: Resume at this block number
-	 -usebody: Use response body content for response analysis phase
-	 -useragent: Use this UA instead of the default ('libwww-perl/...')
+     -prefix [Prefix]: Prefix bytes to append to each sample (Encoded) 
+     -proxy [address:port]: Use HTTP/S Proxy
+     -proxyauth [username:password]: Proxy Authentication
+     -resume [Block Number]: Resume at this block number
+     -usebody: Use response body content for response analysis phase
+     -useragent: Use this UA instead of the default ('libwww-perl/...')
      -verbose: Be Verbose
      -veryverbose: Be Very Verbose (Debug Only)
          
@@ -136,7 +139,10 @@ if ($url eq "" || $sample eq "" || $blockSize eq "") {
 #$post = "";
 #$sample = "";
 
-my $method = $post ? "POST" : "GET";
+if ($method eq "") {
+	$method = $post ? "POST" : "GET";
+}
+&myPrint("HTTP method: $method",0) if $superVerbose;
 
 # These are file related variables
 my $dirName = "PadBuster." . &getTime("F");
